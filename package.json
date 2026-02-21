@@ -1,0 +1,33 @@
+{
+  "name": "fishtail",
+  "version": "0.1.0",
+  "description": "Interactive Mermaid diagram viewer — renders a self-contained HTML page with transitive node highlighting.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "fishtail": "./dist/cli.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build:viewer": "bun build src/viewer/index.ts --target browser --minify --outfile dist/viewer.bundle.js && bun scripts/inline-viewer.ts",
+    "build:cli": "bun build src/cli.ts --target node --outfile dist/cli.js",
+    "build": "bun run build:viewer && bun run build:cli",
+    "test:unit": "bun test tests/mermaid-parser.test.ts tests/cli.test.ts",
+    "test:browser": "bunx playwright test",
+    "test": "bun run test:unit && bun run test:browser",
+    "lint": "bunx tsc --noEmit",
+    "start": "bun run src/cli.ts"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "@types/bun": "latest",
+    "cytoscape": "^3.31.0",
+    "cytoscape-dagre": "^2.5.0",
+    "typescript": "^5.8.0"
+  }
+}
