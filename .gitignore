@@ -1,6 +1,6 @@
 node_modules/
-dist/viewer.bundle.js
-dist/cli.js
+dist/
+src/viewer/inline.ts
 *.js.map
 .DS_Store
 test-results/

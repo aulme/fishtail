@@ -9,7 +9,7 @@ fishtail is a CLI tool that converts a Mermaid `graph`/`flowchart` diagram into 
 ```bash
 bun install
 bunx playwright install chromium
-bun run build:viewer   # must run once before tests or after changing src/viewer/index.ts
+bun run build:viewer   # generates src/viewer/inline.ts — required before running tests
 ```
 
 ## Commands
@@ -63,11 +63,17 @@ The viewer (`src/viewer/index.ts`) is TypeScript that runs in the browser. It im
    - `bun build src/cli.ts --target node --outfile dist/cli.js`
      Bundles the CLI and all its imports — including the `viewerBundle` string from `src/viewer/inline.ts` — into a single ~630 KB self-contained Node.js file. No runtime file reads needed.
 
-### Why `src/viewer/inline.ts` is committed
+### `src/viewer/inline.ts` — generated, gitignored
 
-`inline.ts` is a generated build artefact, but it is committed to the repository. This is deliberate: it lets `bun run test:unit` and `bunx playwright test` work immediately after `bun install`, without needing to run a build step first. The tradeoff is a large generated file in git history.
+`inline.ts` is a generated build artefact that lives in `src/viewer/` but is listed in `.gitignore`. It must be present for tests and the CLI build to work, but it is never committed.
 
-Regenerate it with `bun run build:viewer` after changing `src/viewer/index.ts`. The file has an `AUTO-GENERATED` comment at the top and must never be edited by hand.
+Generate or regenerate it with:
+
+```bash
+bun run build:viewer
+```
+
+This must be run once after `bun install`, and again whenever `src/viewer/index.ts` changes. The file has an `AUTO-GENERATED` comment at the top and must never be edited by hand.
 
 ### Data passing from CLI to browser
 

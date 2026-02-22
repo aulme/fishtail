@@ -96,21 +96,14 @@ git clone https://github.com/aulme/fishtail
 cd fishtail
 bun install
 bunx playwright install chromium
+bun run build:viewer   # required once after install, and after editing src/viewer/index.ts
 ```
 
 ```bash
 bun run build          # build viewer bundle + CLI
-bun run test:unit      # 20 unit tests (bun:test)
-bun run test:browser   # 24 browser tests (Playwright)
-bun test               # all unit tests
-bunx playwright test   # all browser tests
+bun run test:unit      # unit tests (bun:test)
+bun run test:browser   # browser tests (Playwright)
 bun run lint           # TypeScript type check
-```
-
-After changing `src/viewer/index.ts` (browser-side code), regenerate the inlined bundle before running tests:
-
-```bash
-bun run build:viewer
 ```
 
 ## License
