@@ -6,14 +6,20 @@ Click a node to highlight its full upstream and downstream transitive closure. U
 
 ## Install
 
-```
+**npm**
+```bash
 npm install -g fishtail
 ```
 
-Or run without installing:
-
+**Bun**
+```bash
+bun add -g fishtail
 ```
-npx fishtail render diagram.mermaid
+
+**Run without installing**
+```bash
+npx fishtail render diagram.mermaid   # npm
+bunx fishtail render diagram.mermaid  # Bun
 ```
 
 ## Usage
@@ -42,7 +48,9 @@ fishtail render deps.mermaid
 
 # Save to a file and open it
 fishtail render deps.mermaid -o deps.html
-open deps.html
+open deps.html                          # macOS
+xdg-open deps.html                      # Linux
+start deps.html                         # Windows
 
 # Pipe from another tool
 polydep graph --root . | fishtail render -o deps.html

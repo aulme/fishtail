@@ -51,19 +51,23 @@ playwright.config.ts
 
 ### Two-stage build pipeline
 
-The viewer (`src/viewer/index.ts`) is TypeScript that runs in the browser. It imports `cytoscape` and `cytoscape-dagre` as npm packages. The build pipeline:
+The viewer (`src/viewer/index.ts`) is TypeScript that runs in the browser. It imports `cytoscape` and `cytoscape-dagre` as proper npm devDependencies — there are no vendored JS files. The build pipeline compiles those imports into a browser bundle:
 
 1. **`bun run build:viewer`**:
    - `bun build src/viewer/index.ts --target browser --minify --outfile dist/viewer.bundle.js`
-     Produces a 550 KB minified browser bundle (cytoscape + dagre + app code).
+     Produces a ~550 KB minified browser bundle (cytoscape + dagre + app code).
    - `bun scripts/inline-viewer.ts`
-     Reads `dist/viewer.bundle.js` and writes `src/viewer/inline.ts` which exports `viewerBundle` as a string literal.
+     Reads `dist/viewer.bundle.js` and writes `src/viewer/inline.ts`, which is a single TypeScript file that exports the bundle as a string literal: `export const viewerBundle = "..."`.
 
 2. **`bun run build:cli`**:
    - `bun build src/cli.ts --target node --outfile dist/cli.js`
-     Bundles `src/cli.ts` and all its imports (including `viewerBundle` from `src/viewer/inline.ts`) into a single 630 KB self-contained Node.js file. No runtime file reads — the viewer JS is embedded as a string at build time.
+     Bundles the CLI and all its imports — including the `viewerBundle` string from `src/viewer/inline.ts` — into a single ~630 KB self-contained Node.js file. No runtime file reads needed.
 
-`src/viewer/inline.ts` is committed to the repository so that tests work without a prior build step. Regenerate it with `bun run build:viewer` after changing viewer code.
+### Why `src/viewer/inline.ts` is committed
+
+`inline.ts` is a generated build artefact, but it is committed to the repository. This is deliberate: it lets `bun run test:unit` and `bunx playwright test` work immediately after `bun install`, without needing to run a build step first. The tradeoff is a large generated file in git history.
+
+Regenerate it with `bun run build:viewer` after changing `src/viewer/index.ts`. The file has an `AUTO-GENERATED` comment at the top and must never be edited by hand.
 
 ### Data passing from CLI to browser
 
