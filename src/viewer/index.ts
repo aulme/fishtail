@@ -61,7 +61,7 @@ const cy = (window.cy = cytoscape({
         "border-color": "data(borderColor)",
         shape: "round-rectangle",
         "transition-property": "opacity, border-color, border-width",
-        "transition-duration": "150ms",
+        "transition-duration": 150,
       } as cytoscape.Css.Node,
     },
     {
@@ -94,7 +94,7 @@ const cy = (window.cy = cytoscape({
         "arrow-scale": 0.8,
         "curve-style": "bezier",
         "transition-property": "opacity, line-color, target-arrow-color",
-        "transition-duration": "150ms",
+        "transition-duration": 150,
       } as cytoscape.Css.Edge,
     },
     {
@@ -185,7 +185,7 @@ function reachable(node: cytoscape.NodeSingular): cytoscape.Collection {
   const reachableNodes = node
     .successors("node")
     .union(node.predecessors("node"))
-    .union(node as cytoscape.Collection);
+    .union(node as unknown as cytoscape.Collection);
   return reachableNodes.union(reachableNodes.edgesWith(reachableNodes));
 }
 
@@ -210,7 +210,7 @@ function selectNode(node: cytoscape.NodeSingular): void {
   applyHighlight(node);
   setSidebarActive(node.id());
   (document.getElementById("focus-btn") as HTMLButtonElement).disabled = false;
-  cy.animate({ center: { eles: node as cytoscape.Collection }, duration: 200 });
+  cy.animate({ center: { eles: node as unknown as cytoscape.Collection }, duration: 200 });
 }
 
 function enterFocusMode(): void {
@@ -280,7 +280,7 @@ document.getElementById("focus-btn")!.addEventListener("click", () => {
 document.getElementById("fit-btn")!.addEventListener("click", () => {
   if (focusMode) exitFocusMode();
   resetHighlight();
-  cy.animate({ fit: { padding: 30 }, duration: 300 });
+  cy.animate({ fit: { eles: cy.elements(), padding: 30 }, duration: 300 });
 });
 
 document.getElementById("reset-btn")!.addEventListener("click", () => {
