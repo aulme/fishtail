@@ -10,14 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # required for --provenance
+      id-token: write  # required for OIDC trusted publishing and --provenance
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
       - run: bun install
       - run: bun run build:viewer
       - run: bun run lint
@@ -26,5 +22,3 @@ jobs:
       - run: bun run test:browser
       - run: bun run build
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

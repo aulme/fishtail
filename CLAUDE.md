@@ -170,9 +170,9 @@ Six palette entries cycle by subgraph index. Each node carries its colours as Cy
 
 Publishing is fully automated via GitHub Actions (`.github/workflows/publish.yml`). Pushing a `v*` tag triggers a job that runs the full test suite, builds `dist/cli.js`, then publishes to npm with provenance attestation.
 
-**One-time setup** — add an npm access token as a repository secret:
-1. Go to npmjs.com → Access Tokens → Generate New Token (Granular, publish scope for the `fishtail` package)
-2. Add it as `NPM_TOKEN` in GitHub → Settings → Secrets → Actions
+**One-time setup** — configure npm Trusted Publishing (no token needed):
+1. npmjs.com → profile → Access Tokens → Generate New Token → Trusted Publishing
+2. Set repository owner `aulme`, repository name `fishtail`, workflow filename `publish.yml`
 
 **To cut a release:**
 
