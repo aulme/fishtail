@@ -1,7 +1,7 @@
 import { createServer, type ServerResponse } from "node:http";
 import { readFileSync, watch } from "node:fs";
 import { spawn } from "node:child_process";
-import { extname, basename } from "node:path";
+import { extname, basename, dirname } from "node:path";
 import { generateHtml } from "./generate-html.js";
 import { parse, UnsupportedDiagramError } from "./mermaid-parser.js";
 
@@ -108,8 +108,22 @@ export function startServer(filePath: string, port: number, autoOpen: boolean): 
     }
   });
 
-  const watcher = watch(filePath, () => {
-    broadcast();
+  // Watch the parent directory rather than the file itself.
+  // On Windows, editors that do atomic saves (write-then-rename) emit a
+  // 'rename' event on the file, after which fs.watch stops firing entirely.
+  // Watching the directory avoids this. We filter to only the target file;
+  // changedFile can be null on some platforms so we broadcast in that case too.
+  // Debounce 50 ms to coalesce the multiple rapid events Windows emits per save.
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  const targetName = basename(filePath);
+
+  const watcher = watch(dirname(filePath), (_, changedFile) => {
+    if (changedFile !== null && changedFile !== targetName) return;
+    if (debounceTimer !== null) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      broadcast();
+    }, 50);
   });
 
   process.on("SIGINT", () => {
