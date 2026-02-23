@@ -42,6 +42,8 @@ bun run test:browser
 
 All three must pass. Do not commit if any of them fail.
 
+`test:browser` is only strictly required when `src/viewer/**`, `src/generate-html.ts`, `tests/browser.test.ts`, or `tests/page.ts` have changed — CI skips it automatically on other commits. When in doubt, run it anyway.
+
 ## After pushing
 
 After every push, verify CI passes:
