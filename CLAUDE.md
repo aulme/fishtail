@@ -2,7 +2,13 @@
 
 ## Project overview
 
-fishtail is a CLI tool that converts a Mermaid `graph`/`flowchart` diagram into a self-contained interactive HTML page. The page uses Cytoscape.js + dagre for layout, with transitive node highlighting, focus mode, sidebar search, and a subgraph legend.
+fishtail is a CLI tool for viewing Mermaid `graph`/`flowchart` diagrams. It has three modes:
+
+- **Interactive (default)**: starts a local HTTP dev server, opens the browser, and live-reloads via SSE whenever the source file changes.
+- **Save (`--save` / `-o`)**: converts the file to a self-contained HTML page and writes it to disk.
+- **Stdin pipe**: reads from stdin and writes HTML to stdout.
+
+The HTML page uses Cytoscape.js + dagre for layout, with transitive node highlighting, focus mode, sidebar search, and a subgraph legend.
 
 ## Setup
 
@@ -32,11 +38,16 @@ All code must pass `bun run lint`, `bun run test:unit`, and `bun run test:browse
 src/
   models.ts            Types: SubGraph, Edge, MermaidGraph; allNodeNames(), nodeSubgraph()
   mermaid-parser.ts    Regex-based Mermaid parser; parse() + UnsupportedDiagramError
-  generate-html.ts     generateHtml(graph, title) — builds the full HTML string
+  generate-html.ts     generateHtml(graph, title, options) — builds the full HTML string
+                         options.liveReload: inject SSE script for dev server mode
+  server.ts            startServer(filePath, port, autoOpen) — HTTP + SSE dev server
+                         Uses node:http, node:fs (watch, readFileSync), node:child_process
+                         GET /  → re-parses and serves HTML on every request
+                         GET /events → SSE; broadcasts reload event on file change
   viewer/
     index.ts           Browser-side TypeScript: Cytoscape init + all UI logic
     inline.ts          AUTO-GENERATED — viewer bundle inlined as a string; committed to git
-  cli.ts               CLI entry point using commander; renderCommand() is also exported
+  cli.ts               CLI entry point (commander); top-level [file] argument
 scripts/
   inline-viewer.ts     Reads dist/viewer.bundle.js → writes src/viewer/inline.ts
 tests/
@@ -44,6 +55,7 @@ tests/
   cli.test.ts              Unit tests for generateHtml() (bun:test)
   page.ts                  FishtailPage — Playwright page object
   browser.test.ts          Browser tests via Playwright
+test-charts/               20 fixture .mermaid files covering all major Mermaid diagram types
 playwright.config.ts
 ```
 
@@ -61,7 +73,7 @@ The viewer (`src/viewer/index.ts`) is TypeScript that runs in the browser. It im
 
 2. **`bun run build:cli`**:
    - `bun build src/cli.ts --target node --outfile dist/cli.js`
-     Bundles the CLI and all its imports — including the `viewerBundle` string from `src/viewer/inline.ts` — into a single ~630 KB self-contained Node.js file. No runtime file reads needed.
+     Bundles the CLI and all its imports — including the `viewerBundle` string from `src/viewer/inline.ts` — into a single ~650 KB self-contained Node.js file. No runtime file reads needed.
 
 ### `src/viewer/inline.ts` — generated, gitignored
 
@@ -74,6 +86,14 @@ bun run build:viewer
 ```
 
 This must be run once after `bun install`, and again whenever `src/viewer/index.ts` changes. The file has an `AUTO-GENERATED` comment at the top and must never be edited by hand.
+
+### Live reload (dev server mode)
+
+`src/server.ts` runs a plain Node `http.Server`. On `GET /events` it holds the response open as an SSE stream and adds it to a `Set<ServerResponse>`. `fs.watch` on the source file calls `broadcast()` which writes `event: reload\ndata: {}\n\n` to all connected clients.
+
+`generateHtml` accepts `options.liveReload`. When true it appends an inline `<script>` before `</body>` that opens `EventSource('/events')` and calls `location.reload()` on each reload event. Parse errors also get this script so the browser auto-recovers when the file is fixed.
+
+`GET /` re-reads and re-parses the file on every request (no caching) so a full-page reload always reflects the latest content.
 
 ### Data passing from CLI to browser
 
@@ -105,13 +125,17 @@ Six palette entries cycle by subgraph index. Each node carries its colours as Cy
 ### Unit tests (`bun:test`)
 
 - **`mermaid-parser.test.ts`** — 14 tests covering all arrow styles, subgraph parsing, `allNodeNames`, `nodeSubgraph`, all unsupported diagram types.
-- **`cli.test.ts`** — 6 tests covering `generateHtml` output and file writing.
+- **`cli.test.ts`** — 8 tests covering `generateHtml` output, `liveReload` option, and file writing.
 
 ### Browser tests (Playwright)
 
 - **`tests/page.ts`** — `FishtailPage` page object. All Playwright locators and `page.evaluate()` calls live here; tests contain no raw selectors.
 - **`tests/browser.test.ts`** — 24 tests: graph structure, sidebar, transitive highlighting (root / middle / leaf / isolated), focus mode, reset, and search.
 - Tests use `page.setContent(generateHtml(graph))` — no HTTP server needed.
+
+### Test fixtures
+
+`test-charts/` contains 20 `.mermaid` files covering all major Mermaid diagram types. Only `graph`/`flowchart` files pass; the rest exercise the error path. Useful for manual smoke testing and coverage of the unsupported-type error messages.
 
 ## Code conventions
 
@@ -132,7 +156,6 @@ The `files` field in `package.json` includes only `dist/`. The published package
 ## What is NOT supported
 
 - Mermaid diagram types other than `graph` / `flowchart` (error is raised at parse time).
-- Bidirectional edges (`<-->`) — parsed as two separate edges sharing the same line is not guaranteed.
+- Bidirectional edges (`<-->`) — parsed as two separate edges; behaviour not guaranteed.
 - Node labels with spaces (e.g. `A["long label"]`) — labels render as the node ID, not the bracketed text.
 - Exporting to SVG/PNG.
-- Any server-side or dynamic functionality — output is always a static HTML file.
