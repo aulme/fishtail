@@ -6,6 +6,23 @@ on:
   pull_request:
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      ui: ${{ steps.filter.outputs.ui }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ui:
+              - 'src/viewer/**'
+              - 'src/generate-html.ts'
+              - 'tests/browser.test.ts'
+              - 'tests/page.ts'
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -28,6 +45,8 @@ jobs:
 
   test-browser:
     name: Browser tests
+    needs: changes
+    if: needs.changes.outputs.ui == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
