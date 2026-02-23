@@ -1,0 +1,16 @@
+gantt
+  title Web Application Development
+  dateFormat  YYYY-MM-DD
+  section Planning
+  Requirements Analysis    :done,    req, 2024-01-01, 2024-01-15
+  System Design            :done,    design, after req, 10d
+  section Development
+  Database Setup           :active,  db, 2024-01-20, 2024-01-25
+  Backend API              :         api, after db, 20d
+  Frontend Development     :         ui, after db, 25d
+  section Testing
+  Unit Testing             :         test1, after api, 5d
+  Integration Testing      :         test2, after ui, 10d
+  section Deployment
+  Staging Deployment       :         stage, after test2, 3d
+  Production Deployment    :         prod, after stage, 2d

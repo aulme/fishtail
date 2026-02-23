@@ -1,0 +1,32 @@
+flowchart LR
+  subgraph "Source Control"
+    GH[GitHub\nPush]
+  end
+
+  subgraph "CI Pipeline"
+    direction TB
+    Lint[Lint & Format]
+    Test[Unit Tests]
+    Build[Build]
+    Scan[Security Scan]
+    Lint --> Test --> Build --> Scan
+  end
+
+  subgraph "Staging"
+    SD[Deploy]
+    SI[Integration Tests]
+    SD --> SI
+  end
+
+  subgraph "Production"
+    PD[Blue/Green Deploy]
+    Mon[Monitor]
+    PD --> Mon
+  end
+
+  GH --> Lint
+  Scan -->|Pass| SD
+  Scan -->|Fail| FailCI[Fail & Notify]
+  SI -->|Pass| PD
+  SI -->|Fail| Rollback[Rollback]
+  Mon -->|Alert| OnCall[PagerDuty]

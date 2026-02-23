@@ -1,0 +1,15 @@
+C4Context
+  title System Context Diagram for Internet Banking System
+
+  Person(customer, "Bank Customer", "A customer of the bank")
+  Person(staff, "Bank Staff", "Bank employee")
+
+  System(banking, "Internet Banking System", "Allows customers to view accounts and make transfers")
+
+  System_Ext(email, "Email System", "Sends emails to customers")
+  System_Ext(mainframe, "Mainframe Banking System", "Stores core banking data")
+
+  Rel(customer, banking, "Uses", "HTTPS")
+  Rel(staff, banking, "Manages", "HTTPS")
+  Rel(banking, email, "Sends emails via", "SMTP")
+  Rel(banking, mainframe, "Reads/writes", "XML/HTTPS")

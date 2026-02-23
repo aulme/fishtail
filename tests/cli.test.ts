@@ -47,6 +47,19 @@ describe("generateHtml", () => {
   test("unsupported diagram throws before HTML generation", () => {
     expect(() => parse(UNSUPPORTED_MERMAID)).toThrow();
   });
+
+  test("liveReload option injects SSE script", () => {
+    const graph = parse(SIMPLE_MERMAID);
+    const html = generateHtml(graph, "fishtail", { liveReload: true });
+    expect(html).toContain("EventSource('/events')");
+    expect(html).toContain("location.reload()");
+  });
+
+  test("liveReload defaults to false and omits SSE script", () => {
+    const graph = parse(SIMPLE_MERMAID);
+    const html = generateHtml(graph);
+    expect(html).not.toContain("EventSource");
+  });
 });
 
 describe("file-based render", () => {

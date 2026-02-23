@@ -1,0 +1,14 @@
+gitGraph
+  commit id: "Initial commit"
+  commit id: "Add README"
+  branch develop
+  commit id: "Feature: auth"
+  commit id: "Feature: dashboard"
+  checkout main
+  commit id: "Hotfix: security patch"
+  merge develop tag: "v1.0.0"
+  commit id: "Post-merge cleanup"
+  branch release/1.1
+  commit id: "Bump version"
+  checkout main
+  merge release/1.1 tag: "v1.1.0"

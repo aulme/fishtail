@@ -1,0 +1,26 @@
+flowchart TD
+  subgraph "User Layer"
+    U[Users]
+  end
+
+  subgraph "Load Balancing"
+    LB[Application Load Balancer]
+  end
+
+  subgraph "Application Tier"
+    A1[App Server 1]
+    A2[App Server 2]
+  end
+
+  subgraph "Data Tier"
+    DB[(Primary Database)]
+    CACHE[(Redis Cache)]
+  end
+
+  U --> LB
+  LB --> A1
+  LB --> A2
+  A1 --> DB
+  A2 --> DB
+  A1 --> CACHE
+  A2 --> CACHE

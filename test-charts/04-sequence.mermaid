@@ -1,0 +1,16 @@
+sequenceDiagram
+  participant U as User
+  participant A as API
+  participant D as Database
+
+  U->>+A: Login Request
+  A->>+D: Validate Credentials
+  D-->>-A: User Data
+  A-->>-U: Login Success
+
+  loop Every 30 seconds
+    U->>A: Heartbeat
+    A-->>U: Ack
+  end
+
+  Note over U,A: Session maintained

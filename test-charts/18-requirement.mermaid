@@ -1,0 +1,31 @@
+requirementDiagram
+
+requirement test_req {
+  id: 1
+  text: The system shall support user authentication
+  risk: high
+  verifymethod: test
+}
+
+functionalRequirement user_login {
+  id: 2
+  text: Users shall log in with email and password
+  risk: medium
+  verifymethod: demonstration
+}
+
+performanceRequirement response_time {
+  id: 3
+  text: Login shall complete within 2 seconds
+  risk: low
+  verifymethod: test
+}
+
+element login_service {
+  type: service
+  docref: login-service-spec
+}
+
+test_req - traces -> user_login
+user_login - satisfies -> login_service
+response_time - traces -> login_service

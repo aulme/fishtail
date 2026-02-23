@@ -11,7 +11,11 @@ const PALETTE = [
 ];
 const UNASSIGNED = { bg: "#1f2937", border: "#6b7280" };
 
-export function generateHtml(graph: MermaidGraph, title = "fishtail"): string {
+export function generateHtml(
+  graph: MermaidGraph,
+  title = "fishtail",
+  options: { liveReload?: boolean } = {},
+): string {
   const subgraphColors = new Map(
     graph.subgraphs.map((sg, i) => [sg.name, PALETTE[i % PALETTE.length]]),
   );
@@ -230,6 +234,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 <script>window.__FISHTAIL_DATA__ = ${dataJson};</script>
 <script>${viewerBundle}</script>
+${options.liveReload ? `<script>(function(){var es=new EventSource('/events');es.addEventListener('reload',function(){location.reload();});}());</script>` : ""}
 </body>
 </html>
 `;

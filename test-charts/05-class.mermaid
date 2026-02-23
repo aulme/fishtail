@@ -1,0 +1,22 @@
+classDiagram
+  class Animal {
+    +String name
+    +makeSound()
+  }
+
+  class Dog {
+    +bark()
+  }
+
+  class Cat {
+    +meow()
+  }
+
+  class Owner {
+    +String name
+    +addAnimal()
+  }
+
+  Animal <|-- Dog
+  Animal <|-- Cat
+  Owner --> Animal : owns

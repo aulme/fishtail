@@ -1,0 +1,20 @@
+block-beta
+  columns 3
+  A["Frontend\n(React)"]:1
+  B["API Gateway"]:1
+  C["Auth Service"]:1
+  D["Backend\n(Python)"]:1
+  E["Message Queue"]:1
+  F["Worker"]:1
+  G[("PostgreSQL")]:1
+  H[("Redis")]:1
+  I["S3 Storage"]:1
+
+  A --> B
+  B --> C
+  B --> D
+  D --> E
+  E --> F
+  D --> G
+  D --> H
+  F --> I

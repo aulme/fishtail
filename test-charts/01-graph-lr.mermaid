@@ -1,0 +1,8 @@
+graph LR
+  A[Client] --> B[API Gateway]
+  B --> C[Auth Service]
+  B --> D[User Service]
+  B --> E[Order Service]
+  D --> F[(User DB)]
+  E --> G[(Order DB)]
+  C --> F

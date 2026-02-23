@@ -1,0 +1,10 @@
+flowchart TD
+  A[Code Commit] --> B{Tests Pass?}
+  B -->|Yes| C[Build Image]
+  B -->|No| D[Notify Developer]
+  C --> E{Security Scan}
+  E -->|Pass| F[Deploy to Staging]
+  E -->|Fail| G[Block Deployment]
+  F --> H[Run Integration Tests]
+  H -->|Pass| I[Deploy to Production]
+  H -->|Fail| J[Rollback]

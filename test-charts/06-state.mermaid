@@ -1,0 +1,14 @@
+stateDiagram-v2
+  [*] --> Unauthenticated
+
+  Unauthenticated --> Authenticating : login_attempt
+  Authenticating --> Authenticated : valid_credentials
+  Authenticating --> Unauthenticated : invalid_credentials
+  Authenticating --> Locked : max_attempts_exceeded
+
+  Authenticated --> Unauthenticated : logout
+  Authenticated --> SessionExpired : timeout
+  SessionExpired --> Unauthenticated : confirm_logout
+  SessionExpired --> Authenticated : refresh_token
+
+  Locked --> Unauthenticated : admin_unlock
