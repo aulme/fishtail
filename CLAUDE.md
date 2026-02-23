@@ -166,12 +166,28 @@ Six palette entries cycle by subgraph index. Each node carries its colours as Cy
 - `cytoscape-dagre` has no bundled TypeScript declarations; it is imported with `require()` and `// @ts-ignore` suppressed with the eslint comment in the viewer file.
 - No abbreviations: `subgraph` not `sg`, `nodeId` not `id`, `graph` not `g`.
 
-## npm publishing
+## Releasing to npm
+
+Publishing is fully automated via GitHub Actions (`.github/workflows/publish.yml`). Pushing a `v*` tag triggers a job that runs the full test suite, builds `dist/cli.js`, then publishes to npm with provenance attestation.
+
+**One-time setup** — add an npm access token as a repository secret:
+1. Go to npmjs.com → Access Tokens → Generate New Token (Granular, publish scope for the `fishtail` package)
+2. Add it as `NPM_TOKEN` in GitHub → Settings → Secrets → Actions
+
+**To cut a release:**
 
 ```bash
-bun run build          # ensure dist/ is up to date
-npm publish
+# 1. Bump the version in package.json
+#    (edit manually or use npm version)
+npm version patch   # 0.1.0 → 0.1.1
+npm version minor   # 0.1.0 → 0.2.0
+
+# 2. Push the commit and the tag
+git push && git push --tags
 ```
+
+GitHub Actions will then: lint → unit tests → browser tests → build → `npm publish --provenance`.
+The publish step is skipped if any check fails.
 
 The `files` field in `package.json` includes only `dist/`. The published package contains a single executable `dist/cli.js`.
 
