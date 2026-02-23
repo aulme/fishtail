@@ -30,7 +30,27 @@ bun run test:browser        # Run browser tests (Playwright)
 bun run lint                # TypeScript type check (tsc --noEmit)
 ```
 
-All code must pass `bun run lint`, `bun run test:unit`, and `bun run test:browser` before committing.
+## Before committing
+
+Run all three checks locally before every commit — in this order (lint is fastest, browser tests are slowest):
+
+```bash
+bun run lint
+bun run test:unit
+bun run test:browser
+```
+
+All three must pass. Do not commit if any of them fail.
+
+## After pushing
+
+After every push, verify CI passes:
+
+```bash
+gh run watch --repo aulme/fishtail
+```
+
+Wait for all three jobs (Lint, Unit tests, Browser tests) to show ✓. If any job fails, fix it and push again before moving on.
 
 ## Project structure
 
