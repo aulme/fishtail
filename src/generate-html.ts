@@ -1,5 +1,60 @@
-import { allNodeNames, nodeSubgraph, type MermaidGraph } from "./models.js";
+import { allNodeNames, nodeSubgraph, type MermaidGraph, type Edge } from "./models.js";
 import { viewerBundle } from "./viewer/inline.js";
+
+function findCyclicEdgeIds(edges: Edge[]): Set<string> {
+  const adj = new Map<string, string[]>();
+  const allNodes = new Set<string>();
+  for (const e of edges) {
+    allNodes.add(e.source);
+    allNodes.add(e.target);
+    if (!adj.has(e.source)) adj.set(e.source, []);
+    adj.get(e.source)!.push(e.target);
+  }
+
+  const index = new Map<string, number>();
+  const lowlink = new Map<string, number>();
+  const onStack = new Set<string>();
+  const stack: string[] = [];
+  const sccId = new Map<string, number>();
+  const sccSizes = new Map<number, number>();
+  let counter = 0;
+  let sccCount = 0;
+
+  function strongconnect(v: string): void {
+    index.set(v, counter);
+    lowlink.set(v, counter++);
+    stack.push(v);
+    onStack.add(v);
+    for (const w of adj.get(v) ?? []) {
+      if (!index.has(w)) {
+        strongconnect(w);
+        lowlink.set(v, Math.min(lowlink.get(v)!, lowlink.get(w)!));
+      } else if (onStack.has(w)) {
+        lowlink.set(v, Math.min(lowlink.get(v)!, index.get(w)!));
+      }
+    }
+    if (lowlink.get(v) === index.get(v)) {
+      const id = sccCount++;
+      let size = 0;
+      let w: string;
+      do { w = stack.pop()!; onStack.delete(w); sccId.set(w, id); size++; } while (w !== v);
+      sccSizes.set(id, size);
+    }
+  }
+
+  for (const node of allNodes) {
+    if (!index.has(node)) strongconnect(node);
+  }
+
+  const cyclicIds = new Set<string>();
+  for (const e of edges) {
+    const selfLoop = e.source === e.target;
+    const id = sccId.get(e.source);
+    const inCycle = id !== undefined && sccId.get(e.target) === id && sccSizes.get(id)! > 1;
+    if (selfLoop || inCycle) cyclicIds.add(`${e.source}__${e.target}`);
+  }
+  return cyclicIds;
+}
 
 const PALETTE = [
   { bg: "#7c2d12", border: "#f97316" }, // orange
@@ -35,9 +90,13 @@ export function generateHtml(
     };
   });
 
-  const edges = graph.edges.map((e) => ({
-    data: { id: `${e.source}__${e.target}`, source: e.source, target: e.target },
-  }));
+  const cyclicEdgeIds = findCyclicEdgeIds(graph.edges);
+  const edges = graph.edges.map((e) => {
+    const id = `${e.source}__${e.target}`;
+    const element: { data: object; classes?: string } = { data: { id, source: e.source, target: e.target } };
+    if (cyclicEdgeIds.has(id)) element.classes = "cyclic";
+    return element;
+  });
 
   const legend = graph.subgraphs.map((sg, i) => ({
     name: sg.name,

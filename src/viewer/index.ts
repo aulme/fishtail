@@ -98,6 +98,13 @@ const cy = (window.cy = cytoscape({
       } as cytoscape.Css.Edge,
     },
     {
+      selector: "edge.cyclic",
+      style: {
+        "line-color": "#60a5fa",
+        "target-arrow-color": "#60a5fa",
+      } as cytoscape.Css.Edge,
+    },
+    {
       selector: "edge.highlighted",
       style: {
         width: 2,
