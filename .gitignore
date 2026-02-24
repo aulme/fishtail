@@ -1,5 +1,7 @@
 node_modules/
 dist/
+src/viewer/inline.ts
+.idea/
 *.js.map
 .DS_Store
 test-results/
