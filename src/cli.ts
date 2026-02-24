@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { extname, basename } from "node:path";
+import { resolve, extname, basename } from "node:path";
+
+const BUNDLE_PATH = (() => {
+  const sibling = resolve(import.meta.dirname, "viewer.bundle.js");
+  const inDist = resolve(import.meta.dirname, "../dist/viewer.bundle.js");
+  return existsSync(sibling) ? sibling : inDist;
+})();
 import { generateHtml } from "./generate-html.js";
 import { parse, UnsupportedDiagramError } from "./mermaid-parser.js";
 import { startServer } from "./server.js";
@@ -59,7 +65,8 @@ program
           throw err;
         }
         const title = basename(file, extname(file));
-        writeFileSync(outputPath, generateHtml(graph, title), "utf-8");
+        const viewerBundle = existsSync(BUNDLE_PATH) ? readFileSync(BUNDLE_PATH, "utf-8") : "";
+        writeFileSync(outputPath, generateHtml(graph, title, { viewerBundle }), "utf-8");
         console.log(`Saved to ${outputPath}`);
         return;
       }

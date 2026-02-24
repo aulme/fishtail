@@ -15,9 +15,10 @@
     "dist/"
   ],
   "scripts": {
-    "build:viewer": "bun build src/viewer/index.ts --target browser --minify --outfile dist/viewer.bundle.js && bun scripts/inline-viewer.ts",
+    "build:viewer": "bun build src/viewer/index.ts --target browser --minify --outfile dist/viewer.bundle.js",
     "build:cli": "bun build src/cli.ts --target node --outfile dist/cli.js",
     "build": "bun run build:viewer && bun run build:cli",
+    "dev:viewer": "bun build src/viewer/index.ts --target browser --outfile dist/viewer.bundle.js --watch",
     "test:unit": "bun test tests/mermaid-parser.test.ts tests/cli.test.ts",
     "test:browser": "bunx playwright test",
     "test": "bun run test:unit && bun run test:browser",

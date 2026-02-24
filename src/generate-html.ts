@@ -1,5 +1,4 @@
 import { allNodeNames, nodeSubgraph, type MermaidGraph, type Edge } from "./models.js";
-import { viewerBundle } from "./viewer/inline.js";
 
 function findSimpleCycles(edges: Edge[]): string[][] {
   const adj = new Map<string, string[]>();
@@ -113,7 +112,7 @@ const UNASSIGNED = { bg: "#1f2937", border: "#6b7280" };
 export function generateHtml(
   graph: MermaidGraph,
   title = "fishtail",
-  options: { liveReload?: boolean } = {},
+  options: { liveReload?: boolean; viewerUrl?: string; viewerBundle?: string } = {},
 ): string {
   const subgraphColors = new Map(
     graph.subgraphs.map((sg, i) => [sg.name, PALETTE[i % PALETTE.length]]),
@@ -458,8 +457,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 <div id="status"></div>
 
 <script>window.__FISHTAIL_DATA__ = ${dataJson};</script>
-<script>${viewerBundle}</script>
-${options.liveReload ? `<script>(function(){var es=new EventSource('/events');es.addEventListener('reload',function(){location.reload();});}());</script>` : ""}
+${options.viewerUrl ? `<script src="${options.viewerUrl}"></script>` : `<script>${options.viewerBundle ?? ""}</script>`}
+${options.liveReload ? `<script>(function(){var c=false;var es=new EventSource('/events');es.addEventListener('reload',function(){location.reload();});es.addEventListener('open',function(){if(c)location.reload();c=true;});}());</script>` : ""}
 </body>
 </html>
 `;

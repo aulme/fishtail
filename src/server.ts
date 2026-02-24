@@ -1,9 +1,15 @@
 import { createServer, type ServerResponse } from "node:http";
-import { readFileSync, watch } from "node:fs";
+import { readFileSync, existsSync, watch } from "node:fs";
 import { spawn } from "node:child_process";
-import { extname, basename, dirname } from "node:path";
+import { resolve, extname, basename, dirname } from "node:path";
 import { generateHtml } from "./generate-html.js";
 import { parse, UnsupportedDiagramError } from "./mermaid-parser.js";
+
+const BUNDLE_PATH = (() => {
+  const sibling = resolve(import.meta.dirname, "viewer.bundle.js");
+  const inDist = resolve(import.meta.dirname, "../dist/viewer.bundle.js");
+  return existsSync(sibling) ? sibling : inDist;
+})();
 
 function openBrowser(url: string): void {
   const platform = process.platform;
@@ -27,7 +33,7 @@ function serveHtml(filePath: string): string {
 
   try {
     const graph = parse(text);
-    return generateHtml(graph, title, { liveReload: true });
+    return generateHtml(graph, title, { liveReload: true, viewerUrl: "/viewer.js" });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return errorPage(message);
@@ -86,6 +92,18 @@ export function startServer(filePath: string, port: number, autoOpen: boolean): 
       return;
     }
 
+    if (req.url === "/viewer.js") {
+      try {
+        const bundle = readFileSync(BUNDLE_PATH, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
+        res.end(bundle);
+      } catch {
+        res.writeHead(503, { "Content-Type": "text/plain" });
+        res.end("Viewer bundle not found — run: bun run build:viewer");
+      }
+      return;
+    }
+
     const html = serveHtml(filePath);
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(html);
@@ -115,19 +133,27 @@ export function startServer(filePath: string, port: number, autoOpen: boolean): 
   // changedFile can be null on some platforms so we broadcast in that case too.
   // Debounce 50 ms to coalesce the multiple rapid events Windows emits per save.
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  const targetName = basename(filePath);
 
-  const watcher = watch(dirname(filePath), (_, changedFile) => {
-    if (changedFile !== null && changedFile !== targetName) return;
+  function debouncedBroadcast(): void {
     if (debounceTimer !== null) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      debounceTimer = null;
-      broadcast();
-    }, 50);
+    debounceTimer = setTimeout(() => { debounceTimer = null; broadcast(); }, 50);
+  }
+
+  const targetName = basename(filePath);
+  const mermaidWatcher = watch(dirname(filePath), (_, changedFile) => {
+    if (changedFile !== null && changedFile !== targetName) return;
+    debouncedBroadcast();
+  });
+
+  const bundleName = basename(BUNDLE_PATH);
+  const bundleWatcher = watch(dirname(BUNDLE_PATH), (_, changedFile) => {
+    if (changedFile !== null && changedFile !== bundleName) return;
+    debouncedBroadcast();
   });
 
   process.on("SIGINT", () => {
-    watcher.close();
+    mermaidWatcher.close();
+    bundleWatcher.close();
     server.close(() => {
       process.exit(0);
     });

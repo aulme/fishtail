@@ -2,8 +2,20 @@
  * Playwright page object for the fishtail interactive HTML viewer.
  */
 import type { Page } from "@playwright/test";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { generateHtml } from "../src/generate-html.js";
 import type { MermaidGraph } from "../src/models.js";
+
+const BUNDLE_PATH = (() => {
+  const candidates = [
+    resolve(import.meta.dirname, "../dist/viewer.bundle.js"),
+    resolve(import.meta.dirname, "viewer.bundle.js"),
+  ];
+  return candidates.find(existsSync) ?? candidates[0];
+})();
+
+const viewerBundle = existsSync(BUNDLE_PATH) ? readFileSync(BUNDLE_PATH, "utf-8") : "";
 
 export class FishtailPage {
   private readonly page: Page;
@@ -13,7 +25,7 @@ export class FishtailPage {
   }
 
   async load(graph: MermaidGraph): Promise<void> {
-    await this.page.setContent(generateHtml(graph));
+    await this.page.setContent(generateHtml(graph, "fishtail", { viewerBundle }));
     await this.page.waitForFunction(
       "window.cy !== undefined && window.cy.nodes().length > 0",
     );

@@ -1,6 +1,5 @@
 node_modules/
 dist/
-src/viewer/inline.ts
 *.js.map
 .DS_Store
 test-results/
