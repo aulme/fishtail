@@ -113,15 +113,7 @@ export class FishtailPage {
 
   // ── Buttons ──────────────────────────────────────────────────────────────────
 
-  isFocusDisabled(): Promise<boolean> {
-    return this.page.locator("#focus-btn").isDisabled();
-  }
-
-  async clickFocus(): Promise<void> {
-    await this.page.locator("#focus-btn").click();
-  }
-
-  async clickReset(): Promise<void> {
-    await this.page.locator("#reset-btn").click();
+  async clickFit(): Promise<void> {
+    await this.page.locator("#fit-btn").click();
   }
 }

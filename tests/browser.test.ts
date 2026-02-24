@@ -68,13 +68,6 @@ test("sidebar nodes sorted alphabetically", async ({ page }) => {
   expect(names).toEqual([...names].sort());
 });
 
-// ── Initial button state ───────────────────────────────────────────────────────
-
-test("focus button disabled initially", async ({ page }) => {
-  const fp = await makePage(page);
-  expect(await fp.isFocusDisabled()).toBe(true);
-});
-
 // ── Transitive highlight ───────────────────────────────────────────────────────
 
 test("clicking root highlights all descendants", async ({ page }) => {
@@ -112,12 +105,6 @@ test("selected node gets selected-node class", async ({ page }) => {
   expect(await fp.selectedNodeIds()).toEqual(["service"]);
 });
 
-test("focus button enabled after selection", async ({ page }) => {
-  const fp = await makePage(page);
-  await fp.clickNode("api");
-  expect(await fp.isFocusDisabled()).toBe(false);
-});
-
 test("sidebar item gets active class on selection", async ({ page }) => {
   const fp = await makePage(page);
   await fp.clickNode("api");
@@ -125,51 +112,20 @@ test("sidebar item gets active class on selection", async ({ page }) => {
   expect(await fp.isNodeActive("log")).toBe(false);
 });
 
-// ── Focus mode ─────────────────────────────────────────────────────────────────
+// ── Reset (via fit button) ─────────────────────────────────────────────────────
 
-test("focus mode hides unrelated nodes", async ({ page }) => {
-  const fp = await makePage(page);
-  await fp.clickNode("utils");
-  await fp.clickFocus();
-  expect(await fp.hiddenNodeIds()).toEqual(["api", "db", "log", "service"]);
-});
-
-test("focus mode keeps transitive closure visible", async ({ page }) => {
-  const fp = await makePage(page);
-  await fp.clickNode("service");
-  await fp.clickFocus();
-  expect(await fp.hiddenNodeIds()).toEqual(["utils"]);
-});
-
-test("exit focus mode restores all nodes", async ({ page }) => {
-  const fp = await makePage(page);
-  await fp.clickNode("utils");
-  await fp.clickFocus(); // enter
-  await fp.clickFocus(); // exit
-  expect(await fp.hiddenNodeIds()).toEqual([]);
-});
-
-// ── Reset ──────────────────────────────────────────────────────────────────────
-
-test("reset clears highlighted and dimmed", async ({ page }) => {
+test("fit clears highlighted and dimmed", async ({ page }) => {
   const fp = await makePage(page);
   await fp.clickNode("api");
-  await fp.clickReset();
+  await fp.clickFit();
   expect(await fp.highlightedNodeIds()).toEqual([]);
   expect(await fp.dimmedNodeIds()).toEqual([]);
 });
 
-test("reset disables focus button", async ({ page }) => {
+test("fit clears sidebar active class", async ({ page }) => {
   const fp = await makePage(page);
   await fp.clickNode("api");
-  await fp.clickReset();
-  expect(await fp.isFocusDisabled()).toBe(true);
-});
-
-test("reset clears sidebar active class", async ({ page }) => {
-  const fp = await makePage(page);
-  await fp.clickNode("api");
-  await fp.clickReset();
+  await fp.clickFit();
   expect(await fp.activeNodeCount()).toBe(0);
 });
 
