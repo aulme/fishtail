@@ -30,6 +30,7 @@ interface FishtailData {
   edges: Array<{ data: EdgeData }>;
   legend: LegendEntry[];
   cycles: string[][];
+  groups: string[][];
 }
 
 declare global {
@@ -39,7 +40,7 @@ declare global {
   }
 }
 
-const { nodes, edges, legend, cycles } = window.__FISHTAIL_DATA__;
+const { nodes, edges, legend, cycles, groups } = window.__FISHTAIL_DATA__;
 
 const cy = (window.cy = cytoscape({
   container: document.getElementById("cy"),
@@ -186,9 +187,25 @@ if (cycles.length === 0) {
   });
 }
 
+// ── Groups panel ───────────────────────────────────────────────────────────────
+const groupsEl = document.getElementById("panel-groups")!;
+groups.forEach((group, i) => {
+  const item = document.createElement("div");
+  item.className = "group-item";
+  const dot = document.createElement("div");
+  dot.className = "group-dot";
+  const label = document.createElement("span");
+  label.textContent = `Group ${i + 1} (${group.length}): ${group.join(", ")}`;
+  item.appendChild(dot);
+  item.appendChild(label);
+  item.addEventListener("click", () => selectGroup(group, item));
+  groupsEl.appendChild(item);
+});
+
 // ── Tabs ───────────────────────────────────────────────────────────────────────
 const panelNodes = document.getElementById("panel-nodes")!;
 const panelCycles = document.getElementById("panel-cycles")!;
+const panelGroups = document.getElementById("panel-groups")!;
 
 document.querySelectorAll<HTMLElement>(".tab").forEach((tab) => {
   tab.addEventListener("click", () => {
@@ -197,6 +214,7 @@ document.querySelectorAll<HTMLElement>(".tab").forEach((tab) => {
     const panelId = tab.dataset.panel!;
     panelNodes.style.display = panelId === "panel-nodes" ? "flex" : "none";
     panelCycles.style.display = panelId === "panel-cycles" ? "flex" : "none";
+    panelGroups.style.display = panelId === "panel-groups" ? "flex" : "none";
   });
 });
 
@@ -273,7 +291,7 @@ function resetHighlight(): void {
   cy.elements().removeClass("highlighted selected-node dimmed edge-upstream edge-downstream edge-circular");
   selectedNode = null;
   setSidebarActive(null);
-  document.querySelectorAll<HTMLElement>(".cycle-item").forEach((el) => el.classList.remove("active"));
+  document.querySelectorAll<HTMLElement>(".cycle-item, .group-item").forEach((el) => el.classList.remove("active"));
   (document.getElementById("edge-legend") as HTMLElement).style.display = "none";
 }
 
@@ -284,11 +302,27 @@ function selectNode(node: cytoscape.NodeSingular): void {
   cy.animate({ center: { eles: node as unknown as cytoscape.Collection }, duration: 200 });
 }
 
+function selectGroup(group: string[], itemEl: HTMLElement): void {
+  cy.elements().removeClass("highlighted selected-node dimmed edge-upstream edge-downstream edge-circular");
+  (document.getElementById("edge-legend") as HTMLElement).style.display = "none";
+  setSidebarActive(null);
+  document.querySelectorAll<HTMLElement>(".cycle-item, .group-item").forEach((el) => el.classList.remove("active"));
+
+  let connected = cy.collection();
+  for (const nodeId of group) connected = connected.union(cy.getElementById(nodeId));
+  connected = connected.union(connected.edgesWith(connected));
+  cy.elements().not(connected).addClass("dimmed");
+  connected.addClass("highlighted");
+  itemEl.classList.add("active");
+  selectedNode = null;
+  cy.animate({ fit: { eles: connected, padding: 60 }, duration: 300 });
+}
+
 function selectCycle(cycle: string[], itemEl: HTMLElement): void {
   cy.elements().removeClass("highlighted selected-node dimmed edge-upstream edge-downstream edge-circular");
   (document.getElementById("edge-legend") as HTMLElement).style.display = "none";
   setSidebarActive(null);
-  document.querySelectorAll<HTMLElement>(".cycle-item").forEach((el) => el.classList.remove("active"));
+  document.querySelectorAll<HTMLElement>(".cycle-item, .group-item").forEach((el) => el.classList.remove("active"));
 
   let connected = cy.collection();
   for (const nodeId of cycle) connected = connected.union(cy.getElementById(nodeId));

@@ -99,6 +99,35 @@ function findSimpleCycles(edges: Edge[]): string[][] {
   return cycles;
 }
 
+function findGroups(edges: Edge[], allNodeIds: string[]): string[][] {
+  const parent = new Map<string, string>();
+
+  function find(x: string): string {
+    if (!parent.has(x)) parent.set(x, x);
+    if (parent.get(x) !== x) parent.set(x, find(parent.get(x)!));
+    return parent.get(x)!;
+  }
+
+  function union(a: string, b: string): void {
+    const ra = find(a), rb = find(b);
+    if (ra !== rb) parent.set(ra, rb);
+  }
+
+  for (const id of allNodeIds) find(id);
+  for (const e of edges) union(e.source, e.target);
+
+  const groups = new Map<string, string[]>();
+  for (const id of allNodeIds) {
+    const root = find(id);
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root)!.push(id);
+  }
+
+  return [...groups.values()]
+    .map((g) => g.sort())
+    .sort((a, b) => b.length - a.length);
+}
+
 const PALETTE = [
   { bg: "#7c2d12", border: "#f97316" }, // orange
   { bg: "#1e3a5f", border: "#60a5fa" }, // blue
@@ -144,7 +173,9 @@ export function generateHtml(
   }));
 
   const cycles = findSimpleCycles(graph.edges);
-  const dataJson = JSON.stringify({ nodes, edges, legend, cycles });
+  const allNodeIds = allNodeNames(graph);
+  const groups = findGroups(graph.edges, allNodeIds);
+  const dataJson = JSON.stringify({ nodes, edges, legend, cycles, groups });
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -355,6 +386,44 @@ body {
   flex-shrink: 0;
 }
 
+#panel-groups {
+  flex: 1;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 2px;
+}
+#panel-groups::-webkit-scrollbar { width: 4px; }
+#panel-groups::-webkit-scrollbar-track { background: transparent; }
+#panel-groups::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+.group-item {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 4px 8px;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #8b949e;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.group-item span {
+  white-space: normal;
+  word-break: break-word;
+  min-width: 0;
+}
+.group-item:hover { background: #21262d; color: #e2e8f0; }
+.group-item.active { background: #1f2d3d; outline: 1px solid #a78bfa; color: #c4b5fd; }
+.group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a78bfa;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 #controls {
   display: flex;
   flex-direction: column;
@@ -444,12 +513,14 @@ button:disabled { opacity: 0.4; cursor: default; }
     <div id="tab-bar">
       <div class="tab active" data-panel="panel-nodes">Nodes</div>
       <div class="tab" data-panel="panel-cycles">Cycles${cycles.length > 0 ? `<span class="tab-badge">${cycles.length}</span>` : ""}</div>
+      <div class="tab" data-panel="panel-groups">Groups${groups.length > 1 ? `<span class="tab-badge">${groups.length}</span>` : ""}</div>
     </div>
     <div id="panel-nodes">
       <input id="search" type="text" placeholder="Search nodes\u2026" autocomplete="off" spellcheck="false">
       <div id="node-list"></div>
     </div>
     <div id="panel-cycles" style="display:none"></div>
+    <div id="panel-groups" style="display:none"></div>
   </div>
   <div id="controls">
     <button id="fit-btn">Fit all</button>
