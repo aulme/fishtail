@@ -241,18 +241,25 @@ body {
 }
 
 #legend {
-  border-top: 1px solid #30363d;
-  padding-top: 8px;
+  position: fixed;
+  bottom: 36px;
+  right: 16px;
+  background: rgba(22, 27, 34, 0.92);
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 7px 10px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  font-size: 11px;
+  color: #8b949e;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
 }
 .legend-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
-  color: #8b949e;
 }
 
 #tab-container {
@@ -441,7 +448,6 @@ button:disabled { opacity: 0.4; cursor: default; }
     <div id="panel-nodes">
       <input id="search" type="text" placeholder="Search nodes\u2026" autocomplete="off" spellcheck="false">
       <div id="node-list"></div>
-      <div id="legend"></div>
     </div>
     <div id="panel-cycles" style="display:none"></div>
   </div>
@@ -451,6 +457,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 </div>
 
 <div id="cy"></div>
+<div id="legend"></div>
 <div id="edge-legend">
   <div class="edge-legend-row"><span class="edge-legend-swatch" style="background:#4ade80"></span>upstream</div>
   <div class="edge-legend-row"><span class="edge-legend-swatch" style="background:#60a5fa"></span>downstream</div>
