@@ -61,22 +61,16 @@ describe("generateHtml", () => {
     expect(html).not.toContain("EventSource");
   });
 
-  test("cyclic edges get the cyclic class", () => {
+  test("cyclic graph includes cycles in data", () => {
     const graph = parse("graph LR\n  A --> B\n  B --> A\n");
     const html = generateHtml(graph);
-    expect(html).toContain('"A__B"');
-    expect(html).toContain('"B__A"');
-    // Both edges are in a cycle — both should carry the cyclic class
-    const edgeA = html.match(/\{"data":\{"id":"A__B"[^}]*\}[^}]*\}/)?.[0] ?? "";
-    const edgeB = html.match(/\{"data":\{"id":"B__A"[^}]*\}[^}]*\}/)?.[0] ?? "";
-    expect(edgeA).toContain('"cyclic"');
-    expect(edgeB).toContain('"cyclic"');
+    expect(html).toContain('"cycles":[["A","B"]]');
   });
 
-  test("non-cyclic edges do not get the cyclic class", () => {
-    const graph = parse(SIMPLE_MERMAID); // a --> b, no cycle
+  test("acyclic graph has empty cycles in data", () => {
+    const graph = parse(SIMPLE_MERMAID); // a --> b
     const html = generateHtml(graph);
-    expect(html).not.toContain('"cyclic"');
+    expect(html).toContain('"cycles":[]');
   });
 });
 

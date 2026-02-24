@@ -1,7 +1,7 @@
 import { allNodeNames, nodeSubgraph, type MermaidGraph, type Edge } from "./models.js";
 import { viewerBundle } from "./viewer/inline.js";
 
-function findCyclicEdgeIds(edges: Edge[]): Set<string> {
+function findSimpleCycles(edges: Edge[]): string[][] {
   const adj = new Map<string, string[]>();
   const allNodes = new Set<string>();
   for (const e of edges) {
@@ -11,12 +11,13 @@ function findCyclicEdgeIds(edges: Edge[]): Set<string> {
     adj.get(e.source)!.push(e.target);
   }
 
+  // Tarjan's SCC
   const index = new Map<string, number>();
   const lowlink = new Map<string, number>();
   const onStack = new Set<string>();
   const stack: string[] = [];
   const sccId = new Map<string, number>();
-  const sccSizes = new Map<number, number>();
+  const sccNodes = new Map<number, string[]>();
   let counter = 0;
   let sccCount = 0;
 
@@ -35,10 +36,10 @@ function findCyclicEdgeIds(edges: Edge[]): Set<string> {
     }
     if (lowlink.get(v) === index.get(v)) {
       const id = sccCount++;
-      let size = 0;
+      const members: string[] = [];
       let w: string;
-      do { w = stack.pop()!; onStack.delete(w); sccId.set(w, id); size++; } while (w !== v);
-      sccSizes.set(id, size);
+      do { w = stack.pop()!; onStack.delete(w); sccId.set(w, id); members.push(w); } while (w !== v);
+      sccNodes.set(id, members);
     }
   }
 
@@ -46,14 +47,57 @@ function findCyclicEdgeIds(edges: Edge[]): Set<string> {
     if (!index.has(node)) strongconnect(node);
   }
 
-  const cyclicIds = new Set<string>();
+  const seen = new Set<string>();
+  const cycles: string[][] = [];
+
+  // Self-loops
   for (const e of edges) {
-    const selfLoop = e.source === e.target;
-    const id = sccId.get(e.source);
-    const inCycle = id !== undefined && sccId.get(e.target) === id && sccSizes.get(id)! > 1;
-    if (selfLoop || inCycle) cyclicIds.add(`${e.source}__${e.target}`);
+    if (e.source === e.target) {
+      const key = JSON.stringify([e.source]);
+      if (!seen.has(key)) { seen.add(key); cycles.push([e.source]); }
+    }
   }
-  return cyclicIds;
+
+  // Multi-node cycles via DFS within each SCC
+  for (const [, members] of sccNodes) {
+    if (members.length <= 1) continue;
+    const sccSet = new Set(members);
+    const sccAdj = new Map<string, string[]>();
+    for (const node of members) {
+      sccAdj.set(node, (adj.get(node) ?? []).filter((n) => sccSet.has(n)));
+    }
+
+    for (const start of members) {
+      const path: string[] = [start];
+      const visited = new Set<string>([start]);
+
+      function dfs(current: string): void {
+        for (const neighbor of sccAdj.get(current) ?? []) {
+          if (neighbor === start && path.length > 1) {
+            // Canonicalize: rotate so lexicographically smallest node is first
+            let minIdx = 0;
+            for (let i = 1; i < path.length; i++) {
+              if (path[i] < path[minIdx]) minIdx = i;
+            }
+            const canonical = [...path.slice(minIdx), ...path.slice(0, minIdx)];
+            const key = JSON.stringify(canonical);
+            if (!seen.has(key)) { seen.add(key); cycles.push(canonical); }
+          } else if (!visited.has(neighbor)) {
+            visited.add(neighbor);
+            path.push(neighbor);
+            dfs(neighbor);
+            path.pop();
+            visited.delete(neighbor);
+          }
+        }
+      }
+
+      dfs(start);
+    }
+  }
+
+  cycles.sort((a, b) => a.length !== b.length ? a.length - b.length : a.join(",") < b.join(",") ? -1 : 1);
+  return cycles;
 }
 
 const PALETTE = [
@@ -90,12 +134,9 @@ export function generateHtml(
     };
   });
 
-  const cyclicEdgeIds = findCyclicEdgeIds(graph.edges);
   const edges = graph.edges.map((e) => {
     const id = `${e.source}__${e.target}`;
-    const element: { data: object; classes?: string } = { data: { id, source: e.source, target: e.target } };
-    if (cyclicEdgeIds.has(id)) element.classes = "cyclic";
-    return element;
+    return { data: { id, source: e.source, target: e.target } };
   });
 
   const legend = graph.subgraphs.map((sg, i) => ({
@@ -103,7 +144,8 @@ export function generateHtml(
     color: PALETTE[i % PALETTE.length].border,
   }));
 
-  const dataJson = JSON.stringify({ nodes, edges, legend });
+  const cycles = findSimpleCycles(graph.edges);
+  const dataJson = JSON.stringify({ nodes, edges, legend, cycles });
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -214,6 +256,44 @@ body {
   color: #8b949e;
 }
 
+#cycles {
+  border-top: 1px solid #30363d;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+#cycles-heading {
+  font-size: 10px;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 8px 4px;
+}
+.cycle-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #8b949e;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cycle-item:hover { background: #21262d; color: #e2e8f0; }
+.cycle-item.active { background: #1f2d3d; outline: 1px solid #1d4ed8; color: #60a5fa; }
+.cycle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #60a5fa;
+  flex-shrink: 0;
+}
+
 #controls {
   display: flex;
   flex-direction: column;
@@ -236,12 +316,6 @@ button {
 button:hover { background: #30363d; }
 button:disabled { opacity: 0.4; cursor: default; }
 
-#focus-btn {
-  border-color: #f97316;
-  color: #f97316;
-}
-#focus-btn:hover { background: #1a1006; }
-#focus-btn:disabled { border-color: #30363d; color: #484f58; }
 
 #tooltip {
   position: fixed;
@@ -280,10 +354,9 @@ button:disabled { opacity: 0.4; cursor: default; }
   <input id="search" type="text" placeholder="Search nodes\u2026" autocomplete="off" spellcheck="false">
   <div id="node-list"></div>
   <div id="legend"></div>
+  <div id="cycles"></div>
   <div id="controls">
-    <button id="focus-btn" disabled>Focus selected</button>
     <button id="fit-btn">Fit all</button>
-    <button id="reset-btn">Reset</button>
   </div>
 </div>
 

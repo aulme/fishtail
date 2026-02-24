@@ -29,6 +29,7 @@ interface FishtailData {
   nodes: Array<{ data: NodeData }>;
   edges: Array<{ data: EdgeData }>;
   legend: LegendEntry[];
+  cycles: string[][];
 }
 
 declare global {
@@ -38,7 +39,7 @@ declare global {
   }
 }
 
-const { nodes, edges, legend } = window.__FISHTAIL_DATA__;
+const { nodes, edges, legend, cycles } = window.__FISHTAIL_DATA__;
 
 const cy = (window.cy = cytoscape({
   container: document.getElementById("cy"),
@@ -98,13 +99,6 @@ const cy = (window.cy = cytoscape({
       } as cytoscape.Css.Edge,
     },
     {
-      selector: "edge.cyclic",
-      style: {
-        "line-color": "#60a5fa",
-        "target-arrow-color": "#60a5fa",
-      } as cytoscape.Css.Edge,
-    },
-    {
       selector: "edge.highlighted",
       style: {
         width: 2,
@@ -142,6 +136,29 @@ legend.forEach((sg) => {
   row.appendChild(label);
   legendEl.appendChild(row);
 });
+
+// ── Cycles section ─────────────────────────────────────────────────────────────
+const cyclesEl = document.getElementById("cycles")!;
+if (cycles.length === 0) {
+  cyclesEl.style.display = "none";
+} else {
+  const heading = document.createElement("div");
+  heading.id = "cycles-heading";
+  heading.textContent = "Cycles";
+  cyclesEl.appendChild(heading);
+  cycles.forEach((cycle) => {
+    const item = document.createElement("div");
+    item.className = "cycle-item";
+    const dot = document.createElement("div");
+    dot.className = "cycle-dot";
+    const label = document.createElement("span");
+    label.textContent = [...cycle, cycle[0]].join(" → ");
+    item.appendChild(dot);
+    item.appendChild(label);
+    item.addEventListener("click", () => selectCycle(cycle, item));
+    cyclesEl.appendChild(item);
+  });
+}
 
 // ── Sidebar node list ──────────────────────────────────────────────────────────
 const nodeList = document.getElementById("node-list")!;
@@ -181,12 +198,12 @@ document.getElementById("search")!.addEventListener("input", function (this: HTM
   });
   if (q === "") return;
   const matches = cy.nodes().filter((n) => n.id().includes(q));
-  if (matches.length > 0) cy.animate({ fit: { eles: matches, padding: 60 }, duration: 300 });
+  if (matches.length === 1) cy.animate({ center: { eles: matches }, duration: 300 });
+  else if (matches.length > 1) cy.animate({ fit: { eles: matches, padding: 60 }, duration: 300 });
 });
 
 // ── State ──────────────────────────────────────────────────────────────────────
 let selectedNode: cytoscape.NodeSingular | null = null;
-let focusMode = false;
 
 function reachable(node: cytoscape.NodeSingular): cytoscape.Collection {
   const reachableNodes = node
@@ -208,52 +225,38 @@ function resetHighlight(): void {
   cy.elements().removeClass("highlighted selected-node dimmed");
   selectedNode = null;
   setSidebarActive(null);
-  (document.getElementById("focus-btn") as HTMLButtonElement).disabled = true;
+  document.querySelectorAll<HTMLElement>(".cycle-item").forEach((el) => el.classList.remove("active"));
 }
 
 function selectNode(node: cytoscape.NodeSingular): void {
-  if (focusMode) exitFocusMode();
   selectedNode = node;
   applyHighlight(node);
   setSidebarActive(node.id());
-  (document.getElementById("focus-btn") as HTMLButtonElement).disabled = false;
   cy.animate({ center: { eles: node as unknown as cytoscape.Collection }, duration: 200 });
 }
 
-function enterFocusMode(): void {
-  if (!selectedNode) return;
-  focusMode = true;
-  const connected = reachable(selectedNode);
-  cy.elements().not(connected).style("display", "none");
-  connected.style("display", "element");
-  cy.animate({ fit: { eles: connected, padding: 60 }, duration: 300 });
-  const btn = document.getElementById("focus-btn") as HTMLButtonElement;
-  btn.textContent = "Exit focus";
-  btn.style.color = "#fbbf24";
-  btn.style.borderColor = "#fbbf24";
-  const count = connected.nodes().length - 1;
-  setStatus(`Focus: ${selectedNode.id()} — ${count} related nodes`);
-}
+function selectCycle(cycle: string[], itemEl: HTMLElement): void {
+  cy.elements().removeClass("highlighted selected-node dimmed");
+  setSidebarActive(null);
+  document.querySelectorAll<HTMLElement>(".cycle-item").forEach((el) => el.classList.remove("active"));
 
-function exitFocusMode(): void {
-  focusMode = false;
-  cy.elements().style("display", "element");
-  const btn = document.getElementById("focus-btn") as HTMLButtonElement;
-  btn.textContent = "Focus selected";
-  btn.style.color = "";
-  btn.style.borderColor = "";
-  setStatus("");
-  if (selectedNode) applyHighlight(selectedNode);
+  let connected = cy.collection();
+  for (const nodeId of cycle) connected = connected.union(cy.getElementById(nodeId));
+  for (let i = 0; i < cycle.length; i++) {
+    const src = cycle[i], tgt = cycle[(i + 1) % cycle.length];
+    connected = connected.union(cy.edges(`[source = "${src}"][target = "${tgt}"]`));
+  }
+  cy.elements().not(connected).addClass("dimmed");
+  connected.addClass("highlighted");
+  itemEl.classList.add("active");
+  selectedNode = null;
 }
 
 // ── Cytoscape events ───────────────────────────────────────────────────────────
 cy.on("tap", "node", (evt) => selectNode(evt.target as cytoscape.NodeSingular));
 
 cy.on("tap", (evt) => {
-  if (evt.target === cy) {
-    if (focusMode) exitFocusMode();
-    resetHighlight();
-  }
+  if (evt.target === cy) resetHighlight();
 });
 
 // ── Tooltip ────────────────────────────────────────────────────────────────────
@@ -263,8 +266,8 @@ cy.on("mouseover", "node", (evt) => {
   const node = evt.target as cytoscape.NodeSingular;
   tooltip.innerHTML =
     `<div class="tt-name">${node.id()}</div>` +
-    `<div class="tt-type">${(node.data("subgraph") as string | undefined) ?? "unassigned"}</div>` +
-    `<div class="tt-stat">depends on: ${node.outdegree(false)} &nbsp; used by: ${node.indegree(false)}</div>`;
+    `<div class="tt-type">${(node.data("subgraph") as string | undefined) ?? ""}</div>` +
+    `<div class="tt-stat">out: ${node.outdegree(false)} &nbsp; in: ${node.indegree(false)}</div>`;
   tooltip.style.display = "block";
 });
 
@@ -279,20 +282,9 @@ cy.on("mouseout", "node", () => {
 });
 
 // ── Buttons ────────────────────────────────────────────────────────────────────
-document.getElementById("focus-btn")!.addEventListener("click", () => {
-  if (focusMode) exitFocusMode();
-  else enterFocusMode();
-});
-
 document.getElementById("fit-btn")!.addEventListener("click", () => {
-  if (focusMode) exitFocusMode();
   resetHighlight();
   cy.animate({ fit: { eles: cy.elements(), padding: 30 }, duration: 300 });
-});
-
-document.getElementById("reset-btn")!.addEventListener("click", () => {
-  if (focusMode) exitFocusMode();
-  resetHighlight();
 });
 
 // ── Status ─────────────────────────────────────────────────────────────────────
