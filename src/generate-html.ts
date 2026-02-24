@@ -323,7 +323,8 @@ body {
 
 .cycle-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  min-width: 0;
   padding: 4px 8px;
   gap: 6px;
   cursor: pointer;
@@ -331,9 +332,11 @@ body {
   font-size: 11px;
   color: #8b949e;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+.cycle-item span {
+  white-space: normal;
+  word-break: break-word;
+  min-width: 0;
 }
 .cycle-item:hover { background: #21262d; color: #e2e8f0; }
 .cycle-item.active { background: #1f2d3d; outline: 1px solid #1d4ed8; color: #60a5fa; }
