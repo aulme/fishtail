@@ -256,20 +256,72 @@ body {
   color: #8b949e;
 }
 
-#cycles {
-  border-top: 1px solid #30363d;
-  padding-top: 8px;
+#tab-container {
+  flex: 1;
   display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+#tab-bar {
+  display: flex;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+
+.tab {
+  padding: 5px 10px;
+  font-size: 11px;
+  color: #6e7681;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.tab:hover { color: #e2e8f0; }
+.tab.active { color: #e2e8f0; border-bottom-color: #58a6ff; }
+
+.tab-badge {
+  font-size: 10px;
+  background: #1d3a6e;
+  color: #93c5fd;
+  border-radius: 8px;
+  padding: 1px 5px;
+  line-height: 1.4;
+}
+
+#panel-nodes {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  gap: 8px;
+}
+
+#panel-cycles {
+  flex: 1;
+  overflow-y: auto;
   flex-direction: column;
   gap: 2px;
 }
-#cycles-heading {
-  font-size: 10px;
-  color: #8b949e;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0 8px 4px;
+#panel-cycles::-webkit-scrollbar { width: 4px; }
+#panel-cycles::-webkit-scrollbar-track { background: transparent; }
+#panel-cycles::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+.cycle-empty {
+  font-size: 12px;
+  color: #484f58;
+  padding: 16px 8px;
+  text-align: center;
 }
+
 .cycle-item {
   display: flex;
   align-items: center;
@@ -351,10 +403,18 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 <div id="sidebar">
   <h1>${title}</h1>
-  <input id="search" type="text" placeholder="Search nodes\u2026" autocomplete="off" spellcheck="false">
-  <div id="node-list"></div>
-  <div id="legend"></div>
-  <div id="cycles"></div>
+  <div id="tab-container">
+    <div id="tab-bar">
+      <div class="tab active" data-panel="panel-nodes">Nodes</div>
+      <div class="tab" data-panel="panel-cycles">Cycles${cycles.length > 0 ? `<span class="tab-badge">${cycles.length}</span>` : ""}</div>
+    </div>
+    <div id="panel-nodes">
+      <input id="search" type="text" placeholder="Search nodes\u2026" autocomplete="off" spellcheck="false">
+      <div id="node-list"></div>
+      <div id="legend"></div>
+    </div>
+    <div id="panel-cycles" style="display:none"></div>
+  </div>
   <div id="controls">
     <button id="fit-btn">Fit all</button>
   </div>

@@ -137,15 +137,14 @@ legend.forEach((sg) => {
   legendEl.appendChild(row);
 });
 
-// ── Cycles section ─────────────────────────────────────────────────────────────
-const cyclesEl = document.getElementById("cycles")!;
+// ── Cycles panel ───────────────────────────────────────────────────────────────
+const cyclesEl = document.getElementById("panel-cycles")!;
 if (cycles.length === 0) {
-  cyclesEl.style.display = "none";
+  const empty = document.createElement("div");
+  empty.className = "cycle-empty";
+  empty.textContent = "No cycles";
+  cyclesEl.appendChild(empty);
 } else {
-  const heading = document.createElement("div");
-  heading.id = "cycles-heading";
-  heading.textContent = "Cycles";
-  cyclesEl.appendChild(heading);
   cycles.forEach((cycle) => {
     const item = document.createElement("div");
     item.className = "cycle-item";
@@ -159,6 +158,20 @@ if (cycles.length === 0) {
     cyclesEl.appendChild(item);
   });
 }
+
+// ── Tabs ───────────────────────────────────────────────────────────────────────
+const panelNodes = document.getElementById("panel-nodes")!;
+const panelCycles = document.getElementById("panel-cycles")!;
+
+document.querySelectorAll<HTMLElement>(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll<HTMLElement>(".tab").forEach((t) => t.classList.remove("active"));
+    tab.classList.add("active");
+    const panelId = tab.dataset.panel!;
+    panelNodes.style.display = panelId === "panel-nodes" ? "flex" : "none";
+    panelCycles.style.display = panelId === "panel-cycles" ? "flex" : "none";
+  });
+});
 
 // ── Sidebar node list ──────────────────────────────────────────────────────────
 const nodeList = document.getElementById("node-list")!;
