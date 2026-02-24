@@ -397,6 +397,34 @@ button:disabled { opacity: 0.4; cursor: default; }
   font-size: 11px;
   color: #484f58;
 }
+
+#edge-legend {
+  position: fixed;
+  bottom: 36px;
+  left: 240px;
+  background: rgba(22, 27, 34, 0.92);
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 7px 10px;
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  color: #8b949e;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+.edge-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.edge-legend-swatch {
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body>
@@ -421,6 +449,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 </div>
 
 <div id="cy"></div>
+<div id="edge-legend">
+  <div class="edge-legend-row"><span class="edge-legend-swatch" style="background:#4ade80"></span>upstream</div>
+  <div class="edge-legend-row"><span class="edge-legend-swatch" style="background:#60a5fa"></span>downstream</div>
+  <div class="edge-legend-row"><span class="edge-legend-swatch" style="background:#f87171"></span>circular</div>
+</div>
 <div id="tooltip"></div>
 <div id="status"></div>
 

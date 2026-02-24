@@ -108,6 +108,33 @@ const cy = (window.cy = cytoscape({
       } as cytoscape.Css.Edge,
     },
     {
+      selector: "edge.edge-upstream",
+      style: {
+        width: 2,
+        "line-color": "#4ade80",
+        "target-arrow-color": "#4ade80",
+        "z-index": 10,
+      } as cytoscape.Css.Edge,
+    },
+    {
+      selector: "edge.edge-downstream",
+      style: {
+        width: 2,
+        "line-color": "#60a5fa",
+        "target-arrow-color": "#60a5fa",
+        "z-index": 10,
+      } as cytoscape.Css.Edge,
+    },
+    {
+      selector: "edge.edge-circular",
+      style: {
+        width: 2,
+        "line-color": "#f87171",
+        "target-arrow-color": "#f87171",
+        "z-index": 10,
+      } as cytoscape.Css.Edge,
+    },
+    {
       selector: "edge.dimmed",
       style: { opacity: 0.05 } as cytoscape.Css.Edge,
     },
@@ -228,17 +255,26 @@ function reachable(node: cytoscape.NodeSingular): cytoscape.Collection {
 
 function applyHighlight(node: cytoscape.NodeSingular): void {
   const connected = reachable(node);
-  cy.elements().removeClass("highlighted selected-node dimmed");
+  cy.elements().removeClass("highlighted selected-node dimmed edge-upstream edge-downstream edge-circular");
   cy.elements().not(connected).addClass("dimmed");
-  connected.addClass("highlighted");
+  connected.nodes().addClass("highlighted");
   node.addClass("selected-node");
+
+  const upstreamEdges = node.predecessors("edge");
+  const downstreamEdges = node.successors("edge");
+  const circularEdges = upstreamEdges.intersection(downstreamEdges);
+  upstreamEdges.difference(circularEdges).addClass("edge-upstream");
+  downstreamEdges.difference(circularEdges).addClass("edge-downstream");
+  circularEdges.addClass("edge-circular");
+  (document.getElementById("edge-legend") as HTMLElement).style.display = "flex";
 }
 
 function resetHighlight(): void {
-  cy.elements().removeClass("highlighted selected-node dimmed");
+  cy.elements().removeClass("highlighted selected-node dimmed edge-upstream edge-downstream edge-circular");
   selectedNode = null;
   setSidebarActive(null);
   document.querySelectorAll<HTMLElement>(".cycle-item").forEach((el) => el.classList.remove("active"));
+  (document.getElementById("edge-legend") as HTMLElement).style.display = "none";
 }
 
 function selectNode(node: cytoscape.NodeSingular): void {
@@ -249,7 +285,8 @@ function selectNode(node: cytoscape.NodeSingular): void {
 }
 
 function selectCycle(cycle: string[], itemEl: HTMLElement): void {
-  cy.elements().removeClass("highlighted selected-node dimmed");
+  cy.elements().removeClass("highlighted selected-node dimmed edge-upstream edge-downstream edge-circular");
+  (document.getElementById("edge-legend") as HTMLElement).style.display = "none";
   setSidebarActive(null);
   document.querySelectorAll<HTMLElement>(".cycle-item").forEach((el) => el.classList.remove("active"));
 
