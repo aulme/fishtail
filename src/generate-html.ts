@@ -309,7 +309,8 @@ body {
 }
 
 .tab {
-  padding: 5px 10px;
+  flex: 1;
+  padding: 5px 4px;
   font-size: 11px;
   color: #6e7681;
   cursor: pointer;
@@ -318,7 +319,8 @@ body {
   user-select: none;
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  gap: 4px;
   white-space: nowrap;
 }
 .tab:hover { color: #e2e8f0; }
