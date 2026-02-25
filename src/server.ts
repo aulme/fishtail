@@ -152,6 +152,11 @@ export function startServer(filePath: string, port: number, autoOpen: boolean): 
   });
 
   process.on("SIGINT", () => {
+    if (debounceTimer !== null) clearTimeout(debounceTimer);
+    for (const client of sseClients) {
+      client.end();
+    }
+    sseClients.clear();
     mermaidWatcher.close();
     bundleWatcher.close();
     server.close(() => {
