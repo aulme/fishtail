@@ -1,6 +1,6 @@
 {
   "name": "fishtail",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Interactive Mermaid diagram viewer — renders a self-contained HTML page with transitive node highlighting.",
   "license": "MIT",
   "repository": {
