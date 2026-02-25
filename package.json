@@ -18,6 +18,7 @@
     "build:viewer": "bun build src/viewer/index.ts --target browser --minify --outfile dist/viewer.bundle.js",
     "build:cli": "bun build src/cli.ts --target node --outfile dist/cli.js",
     "build": "bun run build:viewer && bun run build:cli",
+    "prepack": "bun run build:viewer",
     "dev:viewer": "bun build src/viewer/index.ts --target browser --outfile dist/viewer.bundle.js --watch",
     "test:unit": "bun test tests/mermaid-parser.test.ts tests/cli.test.ts",
     "test:browser": "bunx playwright test",
