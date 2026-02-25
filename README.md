@@ -106,6 +106,17 @@ The generated HTML page is fully self-contained — all JavaScript is embedded i
 
 **Tooltip** on hover shows the node name, its subgraph, and its in/out-degree.
 
+## Embedding the viewer
+
+`dist/viewer.bundle.js` is included in the npm package and can be embedded in other tools to render fishtail's interactive graph UI without the CLI or dev server.
+
+```js
+import { readFileSync } from "node:fs";
+const bundle = readFileSync("node_modules/fishtail/dist/viewer.bundle.js", "utf-8");
+```
+
+Inject the bundle into a self-contained HTML page alongside `window.__FISHTAIL_DATA__` — see [polydep](https://github.com/aulme/polydep) for a worked example in Python.
+
 ## Development
 
 ```bash

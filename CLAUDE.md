@@ -30,6 +30,8 @@ bun run test:browser        # Run browser tests (Playwright)
 bun run lint                # TypeScript type check (tsc --noEmit)
 ```
 
+`prepack` runs `build:viewer` automatically before `npm pack` / `npm publish`, ensuring `dist/viewer.bundle.js` is always up to date in the published package.
+
 ## Before committing
 
 Run all three checks locally before every commit — in this order (lint is fastest, browser tests are slowest):
@@ -80,6 +82,14 @@ tests/
 test-charts/               20 fixture .mermaid files covering all major Mermaid diagram types
 playwright.config.ts
 ```
+
+## Downstream consumers
+
+`dist/viewer.bundle.js` is published to npm as part of the `fishtail` package (via `"files": ["dist/"]`). External tools can depend on fishtail as an npm package and embed the bundle directly:
+
+- **[polydep](https://github.com/aulme/polydep)** — Python CLI that generates Polylith dependency graphs. Uses `viewer.bundle.js` to render an interactive HTML page via `webbrowser.open`. Runs `bun run update-viewer` to pull the latest bundle from npm when a new fishtail version is released.
+
+When making breaking changes to `__FISHTAIL_DATA__` schema or the HTML structure, coordinate with polydep.
 
 ## Key architectural decisions
 
