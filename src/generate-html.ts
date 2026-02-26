@@ -150,10 +150,11 @@ export function generateHtml(
   const nodes = allNodeNames(graph).map((name) => {
     const sgName = nodeSubgraph(graph, name);
     const colors = sgName ? (subgraphColors.get(sgName) ?? UNASSIGNED) : UNASSIGNED;
+    const label = graph.labels[name] ?? name;
     return {
       data: {
         id: name,
-        label: name,
+        label,
         subgraph: sgName,
         bgColor: colors.bg,
         borderColor: colors.border,
@@ -164,7 +165,9 @@ export function generateHtml(
 
   const edges = graph.edges.map((e) => {
     const id = `${e.source}__${e.target}`;
-    return { data: { id, source: e.source, target: e.target } };
+    const data: Record<string, string> = { id, source: e.source, target: e.target };
+    if (e.label) data.label = e.label;
+    return { data };
   });
 
   const legend = graph.subgraphs.map((sg, i) => ({

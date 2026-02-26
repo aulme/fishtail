@@ -18,6 +18,7 @@ interface EdgeData {
   id: string;
   source: string;
   target: string;
+  label?: string;
 }
 
 interface LegendEntry {
@@ -95,6 +96,15 @@ const cy = (window.cy = cytoscape({
         "target-arrow-shape": "triangle",
         "arrow-scale": 0.8,
         "curve-style": "bezier",
+        label: "data(label)",
+        "font-size": "9px",
+        "font-family": "ui-monospace, SFMono-Regular, monospace",
+        color: "#8b949e",
+        "text-rotation": "autorotate",
+        "text-margin-y": -8,
+        "text-background-color": "#0d1117",
+        "text-background-opacity": 0.8,
+        "text-background-padding": "2px",
         "transition-property": "opacity, line-color, target-arrow-color",
         "transition-duration": 150,
       } as cytoscape.Css.Edge,
@@ -234,7 +244,7 @@ cy.nodes()
 
     const name = document.createElement("span");
     name.className = "node-name";
-    name.textContent = node.id();
+    name.textContent = (node.data("label") as string) || node.id();
 
     item.appendChild(dot);
     item.appendChild(name);
@@ -252,10 +262,15 @@ function setSidebarActive(nodeId: string | null): void {
 document.getElementById("search")!.addEventListener("input", function (this: HTMLInputElement) {
   const q = this.value.trim().toLowerCase();
   document.querySelectorAll<HTMLElement>(".node-item").forEach((el) => {
-    el.classList.toggle("hidden", q !== "" && !(el.dataset.id ?? "").includes(q));
+    const id = (el.dataset.id ?? "").toLowerCase();
+    const label = (el.querySelector(".node-name")?.textContent ?? "").toLowerCase();
+    el.classList.toggle("hidden", q !== "" && !id.includes(q) && !label.includes(q));
   });
   if (q === "") return;
-  const matches = cy.nodes().filter((n) => n.id().includes(q));
+  const matches = cy.nodes().filter((n) => {
+    const label = ((n.data("label") as string) || "").toLowerCase();
+    return n.id().toLowerCase().includes(q) || label.includes(q);
+  });
   if (matches.length === 1) cy.animate({ center: { eles: matches }, duration: 300 });
   else if (matches.length > 1) cy.animate({ fit: { eles: matches, padding: 60 }, duration: 300 });
 });
@@ -348,8 +363,12 @@ const tooltip = document.getElementById("tooltip")!;
 
 cy.on("mouseover", "node", (evt) => {
   const node = evt.target as cytoscape.NodeSingular;
+  const nodeLabel = (node.data("label") as string) || node.id();
+  const nodeId = node.id();
+  const idLine = nodeLabel !== nodeId ? `<div class="tt-type">${nodeId}</div>` : "";
   tooltip.innerHTML =
-    `<div class="tt-name">${node.id()}</div>` +
+    `<div class="tt-name">${nodeLabel}</div>` +
+    idLine +
     `<div class="tt-type">${(node.data("subgraph") as string | undefined) ?? ""}</div>` +
     `<div class="tt-stat">out: ${node.outdegree(false)} &nbsp; in: ${node.indegree(false)}</div>`;
   tooltip.style.display = "block";

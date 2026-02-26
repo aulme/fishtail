@@ -6,12 +6,14 @@ export interface SubGraph {
 export interface Edge {
   source: string;
   target: string;
+  label?: string;
 }
 
 export interface MermaidGraph {
   direction: string;
   subgraphs: SubGraph[];
   edges: Edge[];
+  labels: Record<string, string>;
 }
 
 export function allNodeNames(graph: MermaidGraph): string[] {

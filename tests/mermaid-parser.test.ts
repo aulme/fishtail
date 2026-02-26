@@ -7,7 +7,7 @@ describe("parse - basic graphs", () => {
     const graph = parse("graph LR\n  a --> b");
     expect(graph.direction).toBe("LR");
     expect(graph.edges).toHaveLength(1);
-    expect(graph.edges[0]).toEqual({ source: "a", target: "b" });
+    expect(graph.edges[0]).toMatchObject({ source: "a", target: "b" });
   });
 
   test("flowchart TD", () => {
@@ -54,6 +54,23 @@ graph LR
     const graph = parse(text);
     expect(graph.edges).toHaveLength(2);
   });
+
+  test("quoted subgraph names", () => {
+    const text = `
+flowchart LR
+  subgraph "Source Control"
+    GH
+  end
+  subgraph "CI Pipeline"
+    Lint
+  end
+  GH --> Lint
+`;
+    const graph = parse(text);
+    expect(graph.subgraphs).toHaveLength(2);
+    expect(graph.subgraphs[0].name).toBe("Source Control");
+    expect(graph.subgraphs[1].name).toBe("CI Pipeline");
+  });
 });
 
 describe("parse - comments", () => {
@@ -66,6 +83,97 @@ graph LR
 `;
     const graph = parse(text);
     expect(graph.edges).toHaveLength(1);
+  });
+});
+
+describe("parse - node labels", () => {
+  test("rectangle label A[text]", () => {
+    const graph = parse("graph LR\n  A[Client] --> B[Server]");
+    expect(graph.labels).toMatchObject({ A: "Client", B: "Server" });
+  });
+
+  test("rounded label A(text)", () => {
+    const graph = parse("graph LR\n  A(Start) --> B(End)");
+    expect(graph.labels).toMatchObject({ A: "Start", B: "End" });
+  });
+
+  test("diamond label A{text}", () => {
+    const graph = parse("graph LR\n  A{Decision} --> B[Yes]");
+    expect(graph.labels).toMatchObject({ A: "Decision", B: "Yes" });
+  });
+
+  test("quoted label A[\"text with spaces\"]", () => {
+    const graph = parse('graph LR\n  A["Long Label"] --> B["Another Label"]');
+    expect(graph.labels).toMatchObject({ A: "Long Label", B: "Another Label" });
+  });
+
+  test("cylinder label A[(Database)]", () => {
+    const graph = parse("graph LR\n  A --> DB[(User DB)]");
+    expect(graph.labels).toMatchObject({ DB: "User DB" });
+  });
+
+  test("circle label A((text))", () => {
+    const graph = parse("graph LR\n  A((Hub)) --> B");
+    expect(graph.labels).toMatchObject({ A: "Hub" });
+  });
+
+  test("nodes without labels get no entry in labels map", () => {
+    const graph = parse("graph LR\n  a --> b");
+    expect(graph.labels).toEqual({});
+  });
+
+  test("standalone node declarations with labels", () => {
+    const text = `
+graph LR
+  subgraph svc
+    A[Client]
+    B[Server]
+  end
+  A --> B
+`;
+    const graph = parse(text);
+    expect(graph.labels).toMatchObject({ A: "Client", B: "Server" });
+  });
+});
+
+describe("parse - edge labels", () => {
+  test("edge label with |text|", () => {
+    const graph = parse("graph LR\n  A -->|Yes| B");
+    expect(graph.edges).toHaveLength(1);
+    expect(graph.edges[0]).toMatchObject({ source: "A", target: "B", label: "Yes" });
+  });
+
+  test("edge label with spaces", () => {
+    const graph = parse("graph LR\n  A -->|Some Label| B");
+    expect(graph.edges[0].label).toBe("Some Label");
+  });
+
+  test("edges without labels have no label property", () => {
+    const graph = parse("graph LR\n  A --> B");
+    expect(graph.edges[0].label).toBeUndefined();
+  });
+});
+
+describe("parse - chained edges", () => {
+  test("A --> B --> C produces two edges", () => {
+    const graph = parse("graph LR\n  A --> B --> C");
+    expect(graph.edges).toHaveLength(2);
+    expect(graph.edges[0]).toMatchObject({ source: "A", target: "B" });
+    expect(graph.edges[1]).toMatchObject({ source: "B", target: "C" });
+  });
+
+  test("four-node chain", () => {
+    const graph = parse("graph LR\n  Lint --> Test --> Build --> Scan");
+    expect(graph.edges).toHaveLength(3);
+    expect(graph.edges[0]).toMatchObject({ source: "Lint", target: "Test" });
+    expect(graph.edges[1]).toMatchObject({ source: "Test", target: "Build" });
+    expect(graph.edges[2]).toMatchObject({ source: "Build", target: "Scan" });
+  });
+
+  test("chained edges with labels on nodes", () => {
+    const graph = parse("graph LR\n  A[Start] --> B[Mid] --> C[End]");
+    expect(graph.edges).toHaveLength(2);
+    expect(graph.labels).toMatchObject({ A: "Start", B: "Mid", C: "End" });
   });
 });
 
@@ -137,6 +245,64 @@ graph LR
     expect(new Set(graph.edges.map((e) => e.source))).toEqual(
       new Set(["a", "c", "e"]),
     );
+  });
+});
+
+describe("parse - direction keyword inside subgraphs", () => {
+  test("ignores direction keyword", () => {
+    const text = `
+flowchart LR
+  subgraph pipeline
+    direction TB
+    A
+    B
+  end
+`;
+    const graph = parse(text);
+    expect(graph.subgraphs[0].nodes).toEqual(["A", "B"]);
+  });
+});
+
+describe("parse - complex flowchart", () => {
+  test("parses complex CI/CD flowchart with all features", () => {
+    const text = `flowchart LR
+  subgraph "Source Control"
+    GH[GitHub Push]
+  end
+
+  subgraph "CI Pipeline"
+    direction TB
+    Lint[Lint & Format]
+    Test[Unit Tests]
+    Build[Build]
+    Scan[Security Scan]
+    Lint --> Test --> Build --> Scan
+  end
+
+  GH --> Lint
+  Scan -->|Pass| SD
+  Scan -->|Fail| FailCI[Fail & Notify]
+`;
+    const graph = parse(text);
+    expect(graph.subgraphs[0].name).toBe("Source Control");
+    expect(graph.labels["GH"]).toBe("GitHub Push");
+    expect(graph.labels["Lint"]).toBe("Lint & Format");
+    expect(graph.labels["FailCI"]).toBe("Fail & Notify");
+
+    // Chained edges inside subgraph
+    const chainEdges = graph.edges.filter(
+      (e) =>
+        (e.source === "Lint" && e.target === "Test") ||
+        (e.source === "Test" && e.target === "Build") ||
+        (e.source === "Build" && e.target === "Scan"),
+    );
+    expect(chainEdges).toHaveLength(3);
+
+    // Edge labels
+    const passEdge = graph.edges.find((e) => e.source === "Scan" && e.target === "SD");
+    expect(passEdge?.label).toBe("Pass");
+    const failEdge = graph.edges.find((e) => e.source === "Scan" && e.target === "FailCI");
+    expect(failEdge?.label).toBe("Fail");
   });
 });
 

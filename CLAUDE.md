@@ -205,5 +205,4 @@ The `files` field in `package.json` includes only `dist/`. The published package
 
 - Mermaid diagram types other than `graph` / `flowchart` (error is raised at parse time).
 - Bidirectional edges (`<-->`) — parsed as two separate edges; behaviour not guaranteed.
-- Node labels with spaces (e.g. `A["long label"]`) — labels render as the node ID, not the bracketed text.
 - Exporting to SVG/PNG.
